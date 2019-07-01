@@ -65,6 +65,7 @@ type Options struct {
 	BasicAuthPassword     string        `flag:"basic-auth-password" cfg:"basic_auth_password" env:"OAUTH2_PROXY_BASIC_AUTH_PASSWORD"`
 	PassAccessToken       bool          `flag:"pass-access-token" cfg:"pass_access_token" env:"OAUTH2_PROXY_PASS_ACCESS_TOKEN"`
 	PassHostHeader        bool          `flag:"pass-host-header" cfg:"pass_host_header" env:"OAUTH2_PROXY_PASS_HOST_HEADER"`
+	PassRolesHeader       bool          `flag:"pass-roles-header" cfg:"pass_roles_header"`
 	SkipProviderButton    bool          `flag:"skip-provider-button" cfg:"skip_provider_button" env:"OAUTH2_PROXY_SKIP_PROVIDER_BUTTON"`
 	PassUserHeaders       bool          `flag:"pass-user-headers" cfg:"pass_user_headers" env:"OAUTH2_PROXY_PASS_USER_HEADERS"`
 	SSLInsecureSkipVerify bool          `flag:"ssl-insecure-skip-verify" cfg:"ssl_insecure_skip_verify" env:"OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY"`
@@ -149,6 +150,7 @@ func NewOptions() *Options {
 		PassUserHeaders:       true,
 		PassAccessToken:       false,
 		PassHostHeader:        true,
+		PassRolesHeader:       false,
 		SetAuthorization:      false,
 		PassAuthorization:     false,
 		ApprovalPrompt:        "force",
@@ -295,6 +297,7 @@ func (o *Options) Validate() error {
 			var err error
 			cipher, err = cookie.NewCipher(secretBytes(o.CookieSecret))
 			if err != nil {
+
 				msgs = append(msgs, fmt.Sprintf("cookie-secret error: %v", err))
 			}
 		}
@@ -315,6 +318,13 @@ func (o *Options) Validate() error {
 			o.CookieRefresh.String(),
 			o.CookieExpire.String()))
 	}
+
+	// Confirm the provider type supports sending user roles
+	// if o.PassRolesHeader {
+	// 	if _, ok := o.provider.(providers.RoleProvider); !ok {
+	// 		msgs = append(msgs, "Provider '"+o.provider.Data().ProviderName+"' does not support sending a roles header.")
+	// 	}
+	// }
 
 	if len(o.GoogleGroups) > 0 || o.GoogleAdminEmail != "" || o.GoogleServiceAccountJSON != "" {
 		if len(o.GoogleGroups) < 1 {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -17,8 +18,15 @@ import (
 // GitHubProvider represents an GitHub based Identity Provider
 type GitHubProvider struct {
 	*ProviderData
-	Org  string
-	Team string
+	Org       string
+	Team      string
+	userRoles []struct {
+		Name string `json:"name"`
+		Slug string `json:"slug"`
+		Org  struct {
+			Login string `json:"login"`
+		} `json:"organization"`
+	}
 }
 
 // NewGitHubProvider initiates a new GitHubProvider
@@ -301,4 +309,26 @@ func (p *GitHubProvider) GetUserName(s *sessions.SessionState) (string, error) {
 	}
 
 	return user.Login, nil
+}
+
+// Return a filtered list of all teams assigned to a user by the organization defined in the configuration
+func (p *GitHubProvider) GetUserRoles() string {
+
+	// Todo - could abstract this filtering and refactor hasOrgAndTeam()
+	presentOrgs := make(map[string]bool)
+	var presentRoles []string
+	for _, team := range p.userRoles {
+		presentOrgs[team.Org.Login] = true
+		if p.Org == team.Org.Login {
+			ts := strings.Split(p.Team, ",")
+			for _, t := range ts {
+				if t == team.Slug {
+					log.Printf("Found Github Organization:%q Team:%q (Name:%q)", team.Org.Login, team.Slug, team.Name)
+				}
+			}
+			presentRoles = append(presentRoles, team.Slug)
+		}
+	}
+
+	return strings.Join(presentRoles, ",")
 }
